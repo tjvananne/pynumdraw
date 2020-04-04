@@ -1,0 +1,209 @@
+
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Canvas</title>
+    <style>
+	
+	
+	/* This is all the original styling from the MDN canvas drawing sample code */
+		  body {
+			margin: 0;
+			overflow: hidden;
+			background: #ccc;
+		  }
+
+		  .toolbar {
+			width: 400px;
+			height: 75px;
+			background: #ccc;
+			padding: 5px;
+		  }
+
+		  input[type="color"], button {
+			width: 90%;
+			margin: 0 auto;
+			display: block;
+		  }
+
+		  input[type="range"] {
+			width: 70%;
+		  }
+
+
+	/* Taylor's style additions from here on */
+		  .myCanvas {
+			margin-left: 100px;
+			margin-right: 100px;
+			width: 300px;
+			height: 300px;
+		  }
+		  
+		  #content {
+			margin-left: auto;
+			margin-right: auto;
+			width: 500px;
+		  }
+		  
+		  .results {
+			font-size: 20px;
+		  }
+	     
+	   
+    </style>
+  </head>
+  <body>
+	<div id="content">
+		<h1>Hand drawn number predictor</h1>
+		<p>Draw any single digit number (0-9) in the canvas below and click the "predict" button. Try to center your image drawing as best as possible and take up as much of the canvas as possible with your drawing for best results.</p>
+		<div class="toolbar">
+		  <!--input type="color" aria-label="select pen color">
+		  <input type="range" min="2" max="50" value="30" aria-label="select pen size"><span class="output">30</span-->
+		  <button id="btn_clear_canvas">Clear canvas</button>
+		  <button id="btn_submit_canvas">Predict</button>
+		  <p class="results">Prediction: <span id="prediction_output_value"></span></p>
+		  <p class="results">Prediction Confidence: <span  id="prediction_output_confidence"></span></p>
+		<canvas class="myCanvas">
+		  <p>Add suitable fallback here.</p>
+		</canvas>
+		  
+		</div>
+
+
+	</div>
+
+    <script>
+
+		// ================== CANVAS SETUP =====================================
+		const canvas = document.querySelector('.myCanvas');      
+		const width  = canvas.width = 300;
+		const height = canvas.height = 300;
+		const ctx    = canvas.getContext('2d');
+
+
+		function getCanvasRectLocation() {
+			console.log("window has been resized");
+			window.canvas_rect = canvas.getBoundingClientRect();
+		}
+
+		// trigger this function to run and update our global canvas_rect variable whenever window is resized
+		getCanvasRectLocation()  // <-- run it once just to get it set up;
+		window.addEventListener("resize", getCanvasRectLocation);
+
+
+		ctx.fillStyle = 'rgb(0,0,0)';
+		ctx.fillRect(0,0,width,height);
+
+		const penwidth = 10;
+		const pencolor = '#ffffff';
+		const output = document.querySelector('.output');
+		const clearBtn = document.querySelector('#btn_clear_canvas');
+		const predictBtn = document.querySelector('#btn_submit_canvas');
+
+		// covert degrees to radians
+		function degToRad(degrees) {
+			return degrees * Math.PI / 180;
+		};
+
+
+		// store mouse pointer coordinates, and whether the button is pressed
+		let curX;
+		let curY;
+		let pressed = false;
+
+		// update mouse pointer coordinates
+		document.onmousemove = function(e) {
+			curX = (window.Event) ? e.pageX : e.clientX + (document.documentElement.scrollLeft ? document.documentElement.scrollLeft : document.body.scrollLeft);
+			curY = (window.Event) ? e.pageY : e.clientY + (document.documentElement.scrollTop ? document.documentElement.scrollTop : document.body.scrollTop);
+		}
+
+		canvas.onmousedown = function() {
+			pressed = true;
+		};
+
+		canvas.onmouseup = function() {
+			pressed = false;
+		}
+
+		clearBtn.onclick = function() {
+			ctx.fillStyle = 'rgb(0,0,0)';
+			ctx.fillRect(0,0,width,height);
+		}
+
+		function draw() {
+			if(pressed) {
+				ctx.fillStyle = pencolor;
+				ctx.beginPath();
+				ctx.arc(curX - window.canvas_rect.left, curY - window.canvas_rect.top, penwidth, degToRad(0), degToRad(360), false);
+				//console.log(curY);
+				ctx.fill();
+			}
+			requestAnimationFrame(draw);
+		}
+
+		draw();
+
+		// ================== CANVAS IMAGE DATA PREPROCESSING =====================================
+		
+		
+		var span_predict_value = document.querySelector('#prediction_output_value');
+		var span_predict_confidence = document.querySelector('#prediction_output_confidence');
+		
+		
+		predictBtn.onclick = function() {
+			console.log("predict button was clicked! wahoo!");
+			
+			imgdata = ctx.getImageData(0, 0, 300, 300);
+			console.log("starting loop...");
+			console.log(imgdata);
+			
+			var prepared_array = [];	
+			
+			// it's a gray-scale image, so just grab all the red pixels to 
+			// reduce how much data we have to pass to our API
+			for (var i = 0; i < imgdata.data.length; i += 4) {
+				prepared_array.push(imgdata.data[i] / 255);      // red
+				//imgdata[i + 1] = 255 - imgdata[i + 1]; 			// green
+				//imgdata[i + 2] = 255 - imgdata[i + 2]; 			// blue
+			}
+			console.log("done with loop.");
+			
+			console.log(prepared_array);
+			
+			console.log('calling our send_data function now');
+			send_data_for_prediction(prepared_array);
+		}
+
+
+		send_data_for_prediction = function(p_data) {
+			console.log('send_data_for_prediction has been called!');
+			var xmlhttp = new XMLHttpRequest();   // new HttpRequest instance 
+			var theUrl = "/predict_number/";
+			xmlhttp.responseType = 'json';
+			xmlhttp.open("POST", theUrl);
+			xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+			xmlhttp.send(JSON.stringify({ "new_data": p_data }));
+			console.log("and heres the response from python:");
+			
+			
+			xmlhttp.onload  = function() {
+			
+				var jsonResponse = xmlhttp.response;
+				// do something with jsonResponse
+				span_predict_value.innerHTML = jsonResponse.predicted_number;
+				span_predict_confidence.innerHTML = jsonResponse.confidence.concat("%");
+				
+				console.log(jsonResponse);
+			};
+			
+			
+		}
+
+    </script>
+  </body>
+</html>
+
+
+
