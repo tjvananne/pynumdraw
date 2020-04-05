@@ -11,7 +11,7 @@ This project is a very simple web application where you draw a number on the pro
 There were a number of things I wanted to test out by building this project:
 
 
-* bjoern wsgi
+* bjoern wsgi (I like how this is a python package with extension written in C rather than an OS package)
 * nginx reverse proxy into the bjoern wsgi
 * converting a canvas drawing into JSON
 * exposing a "deep learning" model 
@@ -30,4 +30,16 @@ There were a number of things I wanted to test out by building this project:
 * I use the term "confidence" very loosely in terms of what the model provides
 	- this is really just the maximum value of the last layer of the neural network before it goes into softmax
 	- I'd love to come back and figure out a way to make it less confident about things that clearly aren't numbers
+
+
+## Data for model training:
+
+I wanted to use the actual raw data from the [MNIST site](http://yann.lecun.com/exdb/mnist/) for training my neural network (never pass up an opportunity to dip down into the raw bytes of a weird file format you're not familiar with).
+
+So in the `/data/` directory of this project root, you should put the following files:
+
+* t10k-images-idx3-ubyte  
+* t10k-labels-idx1-ubyte  
+* train-images-idx3-ubyte  
+* train-labels-idx1-ubyte
 
