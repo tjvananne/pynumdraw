@@ -11,7 +11,7 @@
 	/* This is all the original styling from the MDN canvas drawing sample code */
 		  body {
 			margin: 0;
-			overflow: hidden;
+			/*overflow: hidden;*/
 			background: #ccc;
 		  }
 
@@ -76,7 +76,193 @@
 
     <script>
 
-		// ================== CANVAS SETUP =====================================
+		// ================== codepen https://codepen.io/mero789/pen/qBdYWxY ===============
+		// (also canvas drawing setup, but this one will support mobile devices as well)
+
+		let color = "#ffffff";  // should only be white
+		let strokeSize = 10;
+
+		// TJV, I think we can safely comment this out, as there are no color choices for the canvas
+		//function changeColorAndSize(data, width) {
+		//	color = data;
+		//	strokeSize = width;
+		//}
+		
+		// attaching an anonymous function to the "load" event listener of the window
+
+		// ========= handle resize and zooming =====================
+		window.addEventListener('resize', isZooming);
+
+		function isZooming(){
+			
+			getCanvasRectLocation();
+			
+			var newPx_ratio = window.devicePixelRatio || window.screen.availWidth / document.documentElement.clientWidth;
+			if(newPx_ratio != px_ratio){
+				// changing zoom level in browser
+				console.log("zoom level is changing");	
+				return true;
+			}else{
+				// just resizing the window
+				console.log("window is being resized");
+				return false;
+			}
+		};
+
+		window.addEventListener("load", () => {
+			const canvas = document.querySelector(".myCanvas");
+			const ctx = canvas.getContext("2d");
+
+			// TJV, adding back in my logic for setting global variables for global width/height
+			function getCanvasRectLocation() {
+				console.log("window has been loaded and/or resized");
+				window.canvas_rect = canvas.getBoundingClientRect();
+			}
+			getCanvasRectLocation()
+
+			const width  = canvas.width = 300;
+			const height = canvas.height = 300;
+
+			ctx.fillStyle = 'rgb(0,0,0)';
+			ctx.fillRect(0,0,width,height);
+
+			// TJV, I think we need to remove / change this, they were using full-window canvas, we're using 300/300px canvas
+			//resizing
+			//canvas.height = window.innerHeight;
+			//canvas.width = window.innerWidth;
+
+			//variables
+			let painting = false;
+
+			//functions
+			function startPosition(e) {
+				painting = true;
+				draw(e);
+			}
+
+			function endPosition() {
+				painting = false;
+				ctx.beginPath();
+			}
+
+			function draw(e) {
+				if (!painting) {
+					return;
+				}
+				e.preventDefault();
+				e.stopPropagation();
+				ctx.lineWidth = strokeSize;
+				ctx.lineCap = "round";
+				//ctx.lineTo(e.clientX, e.clientY);
+				ctx.lineTo((e.clientX - window.canvas_rect.left), (e.clientY - window.canvas_rect.top));
+				ctx.stroke();
+				ctx.strokeStyle = color;
+				ctx.beginPath();
+				//ctx.moveTo(e.clientX, e.clientY);
+				ctx.moveTo((e.clientX - window.canvas_rect.left), (e.clientY - window.canvas_rect.top));
+			}
+
+			//event listeners
+			canvas.addEventListener("mousedown", startPosition);
+			canvas.addEventListener("touchstart", startPosition);
+			canvas.addEventListener("mouseup", endPosition);
+			canvas.addEventListener("touchend", endPosition);
+			canvas.addEventListener("mousemove", draw);
+			
+			// this is equivalent of "draw" but for browsers on mobile phones
+			canvas.addEventListener("touchmove", function (e) {
+				var touch = e.touches[0];
+				var mouseEvent = new MouseEvent("mousemove", {
+					clientX: touch.clientX,
+					clientY: touch.clientY
+				});
+				draw(mouseEvent);
+			}, false);
+			
+			
+			
+			// =========== data processing and button click stuff ======================
+			var span_predict_value = document.querySelector('#prediction_output_value');
+			var span_predict_confidence = document.querySelector('#prediction_output_confidence');
+			const clearBtn = document.querySelector('#btn_clear_canvas');
+			const predictBtn = document.querySelector('#btn_submit_canvas');
+		
+			predictBtn.onclick = function() {
+				console.log("predict button was clicked! wahoo!");
+				
+				imgdata = ctx.getImageData(0, 0, 300, 300);
+				console.log("starting loop...");
+				console.log(imgdata);
+				
+				var prepared_array = [];	
+				
+				// it's a gray-scale image, so just grab all the red pixels to 
+				// reduce how much data we have to pass to our API
+				for (var i = 0; i < imgdata.data.length; i += 4) {
+					prepared_array.push(imgdata.data[i] / 255);      // red
+					//imgdata[i + 1] = 255 - imgdata[i + 1]; 			// green
+					//imgdata[i + 2] = 255 - imgdata[i + 2]; 			// blue
+				}
+				console.log("done with loop.");
+				
+				console.log(prepared_array);
+				
+				console.log('calling our send_data function now');
+				send_data_for_prediction(prepared_array);
+			}
+
+
+			send_data_for_prediction = function(p_data) {
+				console.log('send_data_for_prediction has been called!');
+				var xmlhttp = new XMLHttpRequest();   // new HttpRequest instance 
+				var theUrl = "/predict_number/";
+				xmlhttp.responseType = 'json';
+				xmlhttp.open("POST", theUrl);
+				xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+				xmlhttp.send(JSON.stringify({ "new_data": p_data }));
+				console.log("and heres the response from python:");
+			
+				xmlhttp.onload  = function() {
+				
+					var jsonResponse = xmlhttp.response;
+					// do something with jsonResponse
+					span_predict_value.innerHTML = jsonResponse.predicted_number;
+					span_predict_confidence.innerHTML = jsonResponse.confidence.concat("%");
+					
+					console.log(jsonResponse);
+				};
+			}
+			
+			clearBtn.onclick = function() {
+				ctx.fillStyle = 'rgb(0,0,0)';
+				ctx.fillRect(0,0,width,height);
+			}
+			
+			
+		}); // end window onload event
+
+		/*
+		TJV notes: so the way I'm interpreting this is...
+		
+		Desktop browser:
+		1. user clicks in the canvas and holds down mouse
+		2. this triggers "mousedown" event, so "startPosition" is called
+		3. start position simply sets `painting` variable to true and passes the event to `draw()` function
+		4. draw handles the actual... drawing, using <event>.clientX and <event>.clientY
+		
+		Mobile browser:
+		* The exact same, except there's a little helper function in between "touchmove" event and "draw()"
+		* because the mobile browser path uses the same draw function, we have nothing left to edit here
+		
+		So I think all I need to do is calculate the top left corner of canvas and subtract
+		that from the clientX and clientY variables respectively.
+		
+		*/
+
+
+
+		// ================== MDN CANVAS DRAWING SETUP =====================================
+		/*
 		const canvas = document.querySelector('.myCanvas');      
 		const width  = canvas.width = 300;
 		const height = canvas.height = 300;
@@ -99,8 +285,7 @@
 		const penwidth = 10;
 		const pencolor = '#ffffff';
 		const output = document.querySelector('.output');
-		const clearBtn = document.querySelector('#btn_clear_canvas');
-		const predictBtn = document.querySelector('#btn_submit_canvas');
+
 
 		// covert degrees to radians
 		function degToRad(degrees) {
@@ -144,13 +329,17 @@
 		}
 
 		draw();
+		*/
+
 
 		// ================== CANVAS IMAGE DATA PREPROCESSING =====================================
 		
+		/* //TJV, this has been moved into the window on load event
 		
 		var span_predict_value = document.querySelector('#prediction_output_value');
 		var span_predict_confidence = document.querySelector('#prediction_output_confidence');
-		
+		const clearBtn = document.querySelector('#btn_clear_canvas');
+		const predictBtn = document.querySelector('#btn_submit_canvas');
 		
 		predictBtn.onclick = function() {
 			console.log("predict button was clicked! wahoo!");
@@ -200,7 +389,7 @@
 			
 			
 		}
-
+		*/
     </script>
   </body>
 </html>
