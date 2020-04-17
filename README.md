@@ -1,5 +1,9 @@
 # pynumdraw
 
+
+![demo gif](pynumdraw.gif)
+
+
 This project is a very simple web application where you draw a number on the provided canvas and click "predict". That canvas data is converted into json and sent to the backend RESTful Flask API. This backend API then preprocesses the json data, passes it into a trained neural network (trained on MNIST), and then reports back both the prediction of what number you drew and the confidence of that prediction.
 
 **I wish I could say that this project was my idea**, but I saw this project presented on YouTube at a conference. I can't seem to find either the presentation nor the github repo for who originally built a project like this. I used that to my advantage and tried to implement the concept myself - learning quite a bit in the process.
