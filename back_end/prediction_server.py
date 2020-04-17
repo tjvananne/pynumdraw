@@ -11,6 +11,7 @@
 
 
 print("importing...")
+import math
 import os
 import sys
 from itertools import chain
@@ -50,21 +51,25 @@ def reshape_and_resize_image(p_image_data):
     
     # determine new shape (28x28 if executing back-end test; 300x300 if coming from front-end)
     print("len(p_image_data) in reshape_and_resize_image function", len(p_image_data))
+    
+    width_and_height = int(math.sqrt(len(p_image_data)))
+    print(f"dimensions of front end canvas must be {width_and_height} by {width_and_height}")
+    
     if len(p_image_data) == (28 * 28):
         print("yes")
         # convert to new shape
         x = np.asarray(p_image_data)
         x = x.reshape((1, 28, 28, 1))
     
-    elif len(p_image_data) == (300 * 300):
+    elif len(p_image_data) == (width_and_height * width_and_height):
         print("no")
         # resize and convert to new shape
         x = np.asarray(p_image_data)
-        x = x.reshape((300, 300))
+        x = x.reshape((width_and_height, width_and_height))
         x = resize(x, output_shape=(28, 28, 1))
         x = x.reshape((1, 28, 28, 1))
     else:
-        print("nothing")
+        raise("Error: Looks like front-end sent us a non-square canvas...")
     
     print("shape of prediction after `reshape_and_resize_image()` function:", x.shape)
     return x

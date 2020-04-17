@@ -2,118 +2,75 @@
 
 <!DOCTYPE html>
 <html>
-<head>
-<meta charset="utf-8">
-	<style>
-		/* THIS IS FOR LAYOUT (media query specific) */
-		/*This applies from 0px to 600px*/
-		
-		body {
-		  /*background: red;*/
-		}
-
-		.container {
-			width: 100%;
-		}
-
-		/*This applies from 600px onwards*/
-		
-		@media (min-width: 600px) {
-		  body {
-			/*background: green;*/
-		  }
-		  
-		  .container {
-			margin-left: auto;
-			margin-right: auto;
-			width: 600px;
-		  }
-		  
-		}
-	</style>
+  <head>
+    <meta charset="utf-8">
+    <title>Canvas</title>
+    <style>
 	
-	<style>
-		/* THIS IS FOR AESTHETICS */
-		
-		/* ok I lied, here's a tiny bit of structure for canvas */
-		.container__myCanvas {
-			/*
+	
+	/* This is all the original styling from the MDN canvas drawing sample code */
+		  body {
+			margin: 0;
+			/*overflow: hidden;*/
+			background: #ccc;
+		  }
+
+		  .toolbar {
+			width: 400px;
+			height: 75px;
+			background: #ccc;
+			padding: 5px;
+		  }
+
+		  input[type="color"], button {
+			width: 90%;
+			margin: 0 auto;
+			display: block;
+		  }
+
+		  input[type="range"] {
+			width: 70%;
+		  }
+
+
+	/* Taylor's style additions from here on */
+		  .myCanvas {
+			margin-left: 100px;
+			margin-right: 100px;
 			width: 300px;
 			height: 300px;
-			*/
-			display: block;
-			margin: 0 auto 20px auto;
-			
-		}
-		
-		.container__title {
-			text-align: center;
-		}
-		
-		
-		body {
-			/*color: white;*/
-			font-family: Arial, Helvetica, sans-serif;
-		}
-		
-		.buttons {
-			/*
-			The buttons are inline with a block parent (div), so you can
-			just use text-align: center to center the buttons.
-			*/
-			text-align: center;
-
-		}
-		
-		.buttons__btn {
-			background: #329ea8;
-			color: white;
-			border: none;
-			padding: 0.75em;
-			border-radius: 5px;
-			font-weight: bold;
-			margin-left: 5px;
-			margin-right: 5px;
-			width: 150px;
-		}
-		
-		.container__results {
-			margin-top: 5px;
-			margin-bottom: 5px;
-		}
-		
-		.container__results--predictionvalue, .container__results--confidencevalue, .container__results--modelversion {
-			font-weight: bold;
-		}
-		
-		
-		#loading {
-			position: fixed; /* or absolute */
-			top: 50%;
-			left: 50%;
-			margin-top: -32px;
-			margin-left: -32px;
-			display: none;
-		}
-		
-		
-	</style>
-</head>
-<body>
-	<img id="loading" src="loading.gif"></img>
-	<div class="container">
-		<h1 class="container__title">PyNumDraw!</h1>
-		<p>This website uses machine learning to guess what number you drew below. Draw a number between 0 and 9 in the middle of the canvas below and then click "predict"!</p>
-		<canvas class="container__myCanvas">
+		  }
+		  
+		  #content {
+			margin-left: auto;
+			margin-right: auto;
+			width: 500px;
+		  }
+		  
+		  .results {
+			font-size: 20px;
+		  }
+	     
+	   
+    </style>
+  </head>
+  <body>
+	<div id="content">
+		<h1>Hand drawn number predictor</h1>
+		<p>Draw any single digit number (0-9) in the canvas below and click the "predict" button. Try to center your image drawing as best as possible and take up as much of the canvas as possible with your drawing for best results.</p>
+		<div class="toolbar">
+		  <!--input type="color" aria-label="select pen color">
+		  <input type="range" min="2" max="50" value="30" aria-label="select pen size"><span class="output">30</span-->
+		  <button id="btn_clear_canvas">Clear canvas</button>
+		  <button id="btn_submit_canvas">Predict</button>
+		  <p class="results">Prediction: <span id="prediction_output_value"></span></p>
+		  <p class="results">Prediction Confidence: <span  id="prediction_output_confidence"></span></p>
+		<canvas class="myCanvas">
 		  <p>Add suitable fallback here.</p>
 		</canvas>
-		<div class="buttons">
-			<button id="btn_submit_canvas" class="buttons__btn buttons__btn--predict">Predict</button>
-			<button id="btn_clear_canvas" class="buttons__btn buttons__btn--clear">Clear canvas</button>
+		  
 		</div>
-		<p class="container__results">Prediction: <span id="prediction_output_value" class="container__results--predictionvalue"></span></p>
-		<p class="container__results">Prediction Confidence: <span id="prediction_output_confidence" class="container__results--confidencevalue"></span></p>
-		<p class="container__results">Model Version: <span id="prediction_model_version" class="container__results--modelversion"></span></p>
+
 
 	</div>
 
@@ -121,22 +78,9 @@
 
 		// ================== codepen https://codepen.io/mero789/pen/qBdYWxY ===============
 		// (also canvas drawing setup, but this one will support mobile devices as well)
-		const canvas = document.querySelector(".container__myCanvas");
-		const ctx = canvas.getContext("2d");
-		
-		var span_predict_value = document.querySelector('#prediction_output_value');
-		var span_predict_confidence = document.querySelector('#prediction_output_confidence');
-		var span_predict_model_version = document.querySelector('#prediction_model_version');
-		const clearBtn = document.querySelector('#btn_clear_canvas');
-		const predictBtn = document.querySelector('#btn_submit_canvas');
-		const load_icon = document.querySelector("#loading");
-		
-
-		const width  = canvas.width = 500;
-		const height = canvas.height = 500;
 
 		let color = "#ffffff";  // should only be white
-		let strokeSize = 20;
+		let strokeSize = 10;
 
 
 		// ========= handle resize and zooming =====================
@@ -162,18 +106,18 @@
 			}
 		};
 
+		const canvas = document.querySelector(".myCanvas");
+		const ctx = canvas.getContext("2d");
 
 		// TJV, adding back in my logic for setting global variables for global width/height
 		function getCanvasRectLocation() {
 			console.log("window has been loaded and/or resized");
 			window.canvas_rect = canvas.getBoundingClientRect();
-			load_icon.style.top  = (window.canvas_rect.top + (height/2)).toString().concat("px");
-			load_icon.style.left = (window.canvas_rect.left + (width/2)).toString().concat("px");
-			
 		}
 		getCanvasRectLocation()
 
-
+		const width  = canvas.width = 300;
+		const height = canvas.height = 300;
 
 		ctx.fillStyle = 'rgb(0,0,0)';
 		ctx.fillRect(0,0,width,height);
@@ -229,12 +173,15 @@
 		
 		
 		// =========== data processing and button click stuff ======================
-
+		var span_predict_value = document.querySelector('#prediction_output_value');
+		var span_predict_confidence = document.querySelector('#prediction_output_confidence');
+		const clearBtn = document.querySelector('#btn_clear_canvas');
+		const predictBtn = document.querySelector('#btn_submit_canvas');
 	
 		predictBtn.onclick = function() {
 			console.log("predict button was clicked! wahoo!");
 			
-			imgdata = ctx.getImageData(0, 0, width, width);
+			imgdata = ctx.getImageData(0, 0, 300, 300);
 			console.log("starting loop...");
 			console.log(imgdata);
 			
@@ -257,7 +204,6 @@
 
 
 		send_data_for_prediction = function(p_data) {
-			loading.style.display = "block";
 			console.log('send_data_for_prediction has been called!');
 			var xmlhttp = new XMLHttpRequest();   // new HttpRequest instance 
 			var theUrl = "/predict_number/";
@@ -273,21 +219,14 @@
 				// do something with jsonResponse
 				span_predict_value.innerHTML = jsonResponse.predicted_number;
 				span_predict_confidence.innerHTML = jsonResponse.confidence.concat("%");
-				span_predict_model_version.innerHTML = jsonResponse.model_version;
-				console.log(jsonResponse.model_version);
+				
 				console.log(jsonResponse);
-				loading.style.display = "none";
 			};
 		}
 		
 		clearBtn.onclick = function() {
 			ctx.fillStyle = 'rgb(0,0,0)';
 			ctx.fillRect(0,0,width,height);
-			
-			// remove the prior predictions
-			span_predict_value.innerHTML = "";
-			span_predict_confidence.innerHTML = "";
-			span_predict_model_version.innerHTML = "";
 		}
 			
 				
@@ -312,9 +251,7 @@
 
 
     </script>
-
-
-</body>
+  </body>
 </html>
 
 
