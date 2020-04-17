@@ -114,6 +114,11 @@
 		<p class="container__results">Prediction: <span id="prediction_output_value" class="container__results--predictionvalue"></span></p>
 		<p class="container__results">Prediction Confidence: <span id="prediction_output_confidence" class="container__results--confidencevalue"></span></p>
 		<p class="container__results">Model Version: <span id="prediction_model_version" class="container__results--modelversion"></span></p>
+		<p>Limitations:</p>
+		<ul>
+			<li>The app is bad at predicting "9". Many of the hand-written training examples of "9" actually look like lower-case "a". If you draw a lower case "a", chances are it will confidently predict "9".</li>
+			<li>"Confidence" is really just the value from the last soft-max operation on the fully connected class output layer. This means that there are instances of a high confidence value even when the input to the model is clearly nothing similar to any of the training examples it's seen so far.</li>
+		</ul>
 
 	</div>
 
